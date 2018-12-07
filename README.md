@@ -36,6 +36,7 @@ Command line parameters (./go-wrk -help)
         -no-ka 	 Disable KeepAlive - prevents re-use of TCP connections between different HTTP requests (Default false)
         -redir 	 Allow Redirects (Default false)
         -v 	 Print version details (Default false)
+        -requestfile  request pipeline http request template file, can surport template parameter, this just surport json header
 
 Basic Usage
 -----------

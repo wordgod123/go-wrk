@@ -57,7 +57,7 @@ func init() {
 	flag.StringVar(&clientKey, "key", "", "Private key file name (SSL/TLS")
 	flag.StringVar(&caCert, "ca", "", "CA file to verify peer against (SSL/TLS)")
 	flag.BoolVar(&http2, "http", true, "Use HTTP/2")
-	flag.StringVar(&requestfile, "requestfile", "", "request template file, can surport template parameter, just for pipeline request")
+	flag.StringVar(&requestfile, "requestfile", "", "request pipeline http request template file, can surport template parameter, this just surport json header")
 }
 
 //printDefaults a nicer format for the defaults
@@ -128,8 +128,14 @@ func main() {
 	loadGen := loader.NewLoadCfg(duration, goroutines, testUrl, reqBody, method, host, header, statsAggregator, timeoutms,
 		allowRedirectsFlag, disableCompression, disableKeepAlive, clientCert, clientKey, caCert, http2, requestfile)
 
-	for i := 0; i < goroutines; i++ {
-		go loadGen.RunSingleLoadSessionBy()
+	if requestfile != "" {
+		for i := 0; i < goroutines; i++ {
+			go loadGen.RunSingleLoadSessionBy()
+		}
+	}else{
+		for i := 0; i < goroutines; i++ {
+			go loadGen.RunSingleLoadSession()
+		}
 	}
 
 	responders := 0
@@ -156,7 +162,7 @@ func main() {
 	}
 
 	if aggStats.NumRequests == 0 {
-		fmt.Println("Error: No statistics collected / no requests found\n")
+		fmt.Println("Error: No statistics collected / no requests found")
 		return
 	}
 
