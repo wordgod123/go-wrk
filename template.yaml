@@ -1,5 +1,5 @@
 #url method  parameter   response
-#parameter can use ${1}["item"] to get previous data response value as this parameter send
+#parameter can use {{item[0].version}} to get previous data response value as this parameter send
 - url: "https://www.baidu.com"
   method: "GET"
   parameter: ""
