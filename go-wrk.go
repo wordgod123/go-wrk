@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tsliwowicz/go-wrk/loader"
-	"github.com/tsliwowicz/go-wrk/util"
+	"github.com/wordgod123/go-wrk/loader"
+	"github.com/wordgod123/go-wrk/util"
 )
 
 const APP_VERSION = "0.1"
@@ -37,6 +37,7 @@ var clientCert string
 var clientKey string
 var caCert string
 var http2 bool
+var requestfile string
 
 func init() {
 	flag.BoolVar(&versionFlag, "v", false, "Print version details")
@@ -49,13 +50,14 @@ func init() {
 	flag.IntVar(&timeoutms, "T", 1000, "Socket/request timeout in ms")
 	flag.StringVar(&method, "M", "GET", "HTTP method")
 	flag.StringVar(&host, "host", "", "Host Header")
-	flag.StringVar(&headerStr, "H", "", "header line, joined with ';'")
+	flag.StringVar(&headerStr, "H", "Content-Type: application/json", "header line, joined with ';'")
 	flag.StringVar(&playbackFile, "f", "<empty>", "Playback file name")
 	flag.StringVar(&reqBody, "body", "", "request body string or @filename")
 	flag.StringVar(&clientCert, "cert", "", "CA certificate file to verify peer against (SSL/TLS)")
 	flag.StringVar(&clientKey, "key", "", "Private key file name (SSL/TLS")
 	flag.StringVar(&caCert, "ca", "", "CA file to verify peer against (SSL/TLS)")
 	flag.BoolVar(&http2, "http", true, "Use HTTP/2")
+	flag.StringVar(&requestfile, "requestfile", "", "request template file, can surport template parameter, just for pipeline request")
 }
 
 //printDefaults a nicer format for the defaults
@@ -106,7 +108,7 @@ func main() {
 	if versionFlag {
 		fmt.Println("Version:", APP_VERSION)
 		return
-	} else if helpFlag || len(testUrl) == 0 {
+	} else if helpFlag{
 		printDefaults()
 		return
 	}
@@ -124,10 +126,10 @@ func main() {
 	}
 
 	loadGen := loader.NewLoadCfg(duration, goroutines, testUrl, reqBody, method, host, header, statsAggregator, timeoutms,
-		allowRedirectsFlag, disableCompression, disableKeepAlive, clientCert, clientKey, caCert, http2)
+		allowRedirectsFlag, disableCompression, disableKeepAlive, clientCert, clientKey, caCert, http2, requestfile)
 
 	for i := 0; i < goroutines; i++ {
-		go loadGen.RunSingleLoadSession()
+		go loadGen.RunSingleLoadSessionBy()
 	}
 
 	responders := 0
@@ -143,8 +145,12 @@ func main() {
 			aggStats.NumRequests += stats.NumRequests
 			aggStats.TotRespSize += stats.TotRespSize
 			aggStats.TotDuration += stats.TotDuration
+			aggStats.TemplateRenderTime += stats.TemplateRenderTime
+			aggStats.ResponseNotMatch += stats.ResponseNotMatch
 			aggStats.MaxRequestTime = util.MaxDuration(aggStats.MaxRequestTime, stats.MaxRequestTime)
 			aggStats.MinRequestTime = util.MinDuration(aggStats.MinRequestTime, stats.MinRequestTime)
+			aggStats.MaxTempRenderTime = util.MaxDuration(aggStats.MaxTempRenderTime, stats.MaxTempRenderTime)
+			aggStats.MinTempRenderTime = util.MinDuration(aggStats.MinTempRenderTime, stats.MinTempRenderTime)
 			responders++
 		}
 	}
@@ -164,5 +170,9 @@ func main() {
 	fmt.Printf("Fastest Request:\t%v\n", aggStats.MinRequestTime)
 	fmt.Printf("Slowest Request:\t%v\n", aggStats.MaxRequestTime)
 	fmt.Printf("Number of Errors:\t%v\n", aggStats.NumErrs)
+	fmt.Printf("Number of Response Not match:\t%v\n", aggStats.ResponseNotMatch)
+	fmt.Printf("Total render template time:\t%v\n", aggStats.TemplateRenderTime)
+	fmt.Printf("Max render template time:\t%v\n", aggStats.MaxTempRenderTime)
+	fmt.Printf("Min render template time:\t%v\n", aggStats.MinTempRenderTime)
 
 }
